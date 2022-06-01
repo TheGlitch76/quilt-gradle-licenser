@@ -61,36 +61,44 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 		File backupFolder = new File(getProject().getBuildDir(), "licenser-backup");
 		ListProperty<File> updatedFiles = getProject().getObjects().listProperty(File.class);
 
-		LicenseHeader header = this.licenseHeader;
 		WorkQueue queue = this.executor.noIsolation();
-		int total = 0;
+
 		try {
 			GitUtils.gits.put(rootPath, Git.open(rootPath));
 		} catch (IOException e) {
 			throw new GradleException("Failed to open git repository at " + rootPath, e);
 		}
-		for (var sourceFile : this.sourceSet.getAllJava().matching(this.patternFilterable)) {
-			queue.submit(Consumer.class, parameters -> {
-				parameters.getRootPath().set(rootPath);
-				parameters.getProjectPath().set(projectPath);
-				parameters.getBackupFolder().set(backupFolder);
-				parameters.getLicenseHeader().set(header);
-				parameters.getSourceFile().set(sourceFile);
-				parameters.getSuccessfulFiles().set(updatedFiles);
-			});
-			total++;
-		}
-		queue.await();
 
-		GitUtils.gits.get(rootPath).close();
-		for (var path : updatedFiles.get()) {
-			getProject().getLogger().lifecycle(" - Updated file {}", path);
+		try {
+			int total = 0;
+
+			for (var sourceFile : this.sourceSet.getAllJava().matching(this.patternFilterable)) {
+				queue.submit(Work.class, parameters -> {
+					parameters.getRootPath().set(rootPath);
+					parameters.getProjectPath().set(projectPath);
+					parameters.getBackupFolder().set(backupFolder);
+					parameters.getLicenseHeader().set(this.licenseHeader);
+					parameters.getSourceFile().set(sourceFile);
+					parameters.getSuccessfulFiles().set(updatedFiles);
+				});
+
+				total++;
+			}
+
+			queue.await();
+
+			for (var path : updatedFiles.get()) {
+				getProject().getLogger().lifecycle(" - Updated file {}", path);
+			}
+
+			getProject().getLogger().lifecycle("Updated {} out of {} files.", updatedFiles.get().size(), total);
+		} finally {
+			GitUtils.gits.remove(rootPath).close();
 		}
 
-		getProject().getLogger().lifecycle("Updated {} out of {} files.", updatedFiles.get().size(), total);
 	}
 
-	public abstract static class Consumer implements WorkAction<ApplyLicenseWorkParameters> {
+	public abstract static class Work implements WorkAction<ApplyLicenseWorkParameters> {
 		@Override
 		public void execute() {
 			try {
@@ -109,7 +117,7 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 
 	}
 
-	public static interface ApplyLicenseWorkParameters extends WorkParameters {
+	public interface ApplyLicenseWorkParameters extends WorkParameters {
 		/**
 		 * The folder of the root project.
 		 */

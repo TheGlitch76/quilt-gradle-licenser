@@ -145,7 +145,7 @@ public class LicenseUtils {
 		}
 	}
 
-	public static List<String> getMetadata(String[] headerFormat) {
+	public static ArrayList<String> getMetadata(String[] headerFormat) {
 		var list = new ArrayList<String>();
 
 		for (var line : headerFormat) {

@@ -17,6 +17,7 @@
 package org.quiltmc.gradle.licenser.task;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.ListProperty;
@@ -66,9 +67,11 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 		try {
 			GitUtils.gits.put(rootPath, Git.open(rootPath));
 		} catch (IOException e) {
-			getLogger().warn("Failed to open git repository at " + rootPath, e);
+			getLogger().warn("Failed to open git repository at " + rootPath);
 		}
 
+		// Go home IDEA, you're drunk.
+		//noinspection TryFinallyCanBeTryWithResources
 		try {
 			int total = 0;
 
@@ -93,7 +96,11 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 
 			getProject().getLogger().lifecycle("Updated {} out of {} files.", updatedFiles.get().size(), total);
 		} finally {
-			GitUtils.gits.remove(rootPath).close();
+			var toClose = GitUtils.gits.remove(rootPath);
+
+			if (toClose != null) {
+				toClose.close();
+			}
 		}
 
 	}
@@ -101,17 +108,13 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 	public abstract static class Work implements WorkAction<ApplyLicenseWorkParameters> {
 		@Override
 		public void execute() {
-			try {
-				File visiting = getParameters().getSourceFile().get().getAsFile();
-	//            if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
-	//                getLogger().lifecycle("=> Visiting {}...", visiting);
-	//            }
+			File visiting = getParameters().getSourceFile().get().getAsFile();
+			//            if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
+			//                getLogger().lifecycle("=> Visiting {}...", visiting);
+			//            }
 
-				if (this.getParameters().getLicenseHeader().get().format(this.getParameters())) {
-					this.getParameters().getSuccessfulFiles().add(visiting);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
+			if (this.getParameters().getLicenseHeader().get().format(this.getParameters())) {
+				this.getParameters().getSuccessfulFiles().add(visiting);
 			}
 		}
 

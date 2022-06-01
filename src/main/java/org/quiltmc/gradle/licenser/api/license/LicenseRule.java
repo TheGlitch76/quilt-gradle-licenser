@@ -113,7 +113,7 @@ public class LicenseRule implements Serializable {
 		String year = this.getYearString(rootPath, projectPath, filePath, source);
 
 //		if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
-//			logger.lifecycle("  => Selected \"{}\" as the year string.", year);
+//			System.out.printf("  => Selected \"%s\" as the year string.%n", year);
 //		}
 
 		int delimiter = source.indexOf("package");

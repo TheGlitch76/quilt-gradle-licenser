@@ -41,7 +41,7 @@ public class QuiltLicenserGradlePlugin implements Plugin<Project> {
 	/**
 	 * Represents whether the debug mode is enabled or not using the {@value #DEBUG_MODE_PROPERTY} system property.
 	 */
-	public static final boolean DEBUG_MODE = Boolean.getBoolean(DEBUG_MODE_PROPERTY);
+	public static final boolean DEBUG_MODE = true;
 
 	@Override
 	public void apply(Project project) {

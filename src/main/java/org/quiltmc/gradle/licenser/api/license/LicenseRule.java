@@ -18,11 +18,15 @@ package org.quiltmc.gradle.licenser.api.license;
 
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.Nested;
 import org.jetbrains.annotations.Nullable;
 import org.quiltmc.gradle.licenser.QuiltLicenserGradlePlugin;
 import org.quiltmc.gradle.licenser.impl.LicenseUtils;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,7 +42,7 @@ import java.util.regex.Pattern;
  * @version 1.1.1
  * @since 1.0.0
  */
-public class LicenseRule {
+public class LicenseRule implements Serializable {
 	private final HeaderFormat headerFormat;
 	private final Pattern validator;
 	private final @Nullable Pattern matcher;
@@ -46,7 +50,7 @@ public class LicenseRule {
 	private final LicenseYearSelectionMode yearSelectionMode;
 
 	public LicenseRule(String headerFormat) {
-		this(headerFormat, LicenseYearDisplayMode.LATEST_ONLY, LicenseYearSelectionMode.PROJECT);
+		this(headerFormat, LicenseYearDisplayMode.LATEST_ONLY, LicenseYearSelectionMode.ROOT_PROJECT);
 	}
 
 	public LicenseRule(String headerFormat, LicenseYearDisplayMode yearDisplayMode, LicenseYearSelectionMode yearSelectionMode) {
@@ -105,13 +109,12 @@ public class LicenseRule {
 		return this.validator.matcher(source).find();
 	}
 
-	public boolean formatFile(Project project, Path rootPath, Path path) {
-		String source = LicenseUtils.readFile(path);
-		String year = this.getYearString(project, path, source);
+	public boolean formatFile(Path rootPath, Path projectPath, Path filePath, Path backupDir, String source) {
+		String year = this.getYearString(rootPath, projectPath, filePath, source);
 
-		if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
-			project.getLogger().lifecycle("  => Selected \"{}\" as the year string.", year);
-		}
+//		if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
+//			logger.lifecycle("  => Selected \"{}\" as the year string.", year);
+//		}
 
 		int delimiter = source.indexOf("package");
 		if (delimiter != -1) {
@@ -124,10 +127,10 @@ public class LicenseRule {
 				return false;
 			}
 
-			var backupPath = LicenseUtils.getBackupPath(project, rootPath, path);
+			var backupPath = LicenseUtils.getBackupPath(backupDir.toFile(), projectPath, filePath);
 
 			if (backupPath == null) {
-				throw new GradleException("Cannot backup file " + path + ", abandoning formatting.");
+				throw new GradleException("Cannot backup file " + filePath + ", abandoning formatting.");
 			}
 
 			try {
@@ -135,15 +138,15 @@ public class LicenseRule {
 					Files.createDirectories(backupPath.getParent());
 				}
 
-				Files.copy(path, backupPath, StandardCopyOption.REPLACE_EXISTING);
+				Files.copy(filePath, backupPath, StandardCopyOption.REPLACE_EXISTING);
 			} catch (IOException e) {
-				throw new GradleException("Cannot backup file " + path + ", abandoning formatting.", e);
+				throw new GradleException("Cannot backup file " + filePath + ", abandoning formatting.", e);
 			}
 
 			try {
-				Files.writeString(path, newSource);
+				Files.writeString(filePath, newSource);
 			} catch (IOException e) {
-				throw new GradleException("Failed to write updated file " + path + ", abandoning formatting.", e);
+				throw new GradleException("Failed to write updated file " + filePath + ", abandoning formatting.", e);
 			}
 
 			return true;
@@ -171,13 +174,13 @@ public class LicenseRule {
 		return builder.toString();
 	}
 
-	private String getYearString(Project project, Path sourcePath, String source) {
-		int lastModifiedYear = this.yearSelectionMode.getYear(project, sourcePath);
+	private String getYearString(Path rootPath, Path projectPath, Path sourcePath, String source) {
+		int lastModifiedYear = this.yearSelectionMode.getYear(rootPath, projectPath, sourcePath);
 		var matcher = this.validator.matcher(source);
 
-		if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
-			project.getLogger().lifecycle("  => Found last modification year {}", lastModifiedYear);
-		}
+//		if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
+//			logger.lifecycle("  => Found last modification year {}", lastModifiedYear);
+//		}
 
 		String yearValue = null;
 
@@ -185,13 +188,14 @@ public class LicenseRule {
 			if (matcher.groupCount() >= 1) {
 				yearValue = matcher.group(1);
 
-				if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
-					project.getLogger().lifecycle("  => Found current year value in file: \"{}\"", yearValue);
-				}
+//				if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
+//					logger.lifecycle("  => Found current year value in file: \"{}\"", yearValue);
+//				}
 			}
-		} else if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
-			project.getLogger().lifecycle("  => Could not find current year value in file.");
 		}
+//		else if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
+//			logger.lifecycle("  => Could not find current year value in file.");
+//		}
 
 		return this.yearDisplayMode.getYearString(yearValue, lastModifiedYear);
 	}

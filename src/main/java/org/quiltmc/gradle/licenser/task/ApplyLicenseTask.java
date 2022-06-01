@@ -16,28 +16,32 @@
 
 package org.quiltmc.gradle.licenser.task;
 
-import org.gradle.api.Project;
-import org.gradle.api.logging.Logger;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.workers.WorkAction;
+import org.gradle.workers.WorkParameters;
+import org.gradle.workers.WorkQueue;
+import org.gradle.workers.WorkerExecutor;
 import org.jetbrains.annotations.ApiStatus;
-import org.quiltmc.gradle.licenser.QuiltLicenserGradlePlugin;
 import org.quiltmc.gradle.licenser.api.license.LicenseHeader;
 import org.quiltmc.gradle.licenser.extension.QuiltLicenserGradleExtension;
 
 import javax.inject.Inject;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
 
 @ApiStatus.Internal
 public class ApplyLicenseTask extends JavaSourceBasedTask {
 	private final LicenseHeader licenseHeader;
+	private final WorkerExecutor executor;
 
 	@Inject
-	public ApplyLicenseTask(SourceSet sourceSet, QuiltLicenserGradleExtension extension) {
+	public ApplyLicenseTask(SourceSet sourceSet, QuiltLicenserGradleExtension extension, WorkerExecutor workerExecutor) {
 		super(sourceSet, extension.asPatternFilterable());
 		this.licenseHeader = extension.getLicenseHeader();
+		this.executor = workerExecutor;
 		this.setDescription("Applies the correct license headers to source files in the " + sourceSet.getName() + " source set.");
 		this.setGroup("generation");
 
@@ -48,38 +52,75 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 
 	@TaskAction
 	public void execute() {
-		this.execute(new Consumer(this.licenseHeader));
+		File rootPath = this.getProject().getRootProject().getRootDir();
+		File projectPath = this.getProject().getRootDir();
+		File backupFolder = new File(getProject().getBuildDir(), "licenser-backup");
+		ListProperty<File> updatedFiles = getProject().getObjects().listProperty(File.class);
+
+		LicenseHeader header = this.licenseHeader;
+		WorkQueue queue = this.executor.noIsolation();
+		int total = 0;
+		for (var sourceFile : this.sourceSet.getAllJava().matching(this.patternFilterable)) {
+			queue.submit(Consumer.class, parameters -> {
+				parameters.getRootPath().set(rootPath);
+				parameters.getProjectPath().set(projectPath);
+				parameters.getBackupFolder().set(backupFolder);
+				parameters.getLicenseHeader().set(header);
+				parameters.getSourceFile().set(sourceFile);
+				parameters.getSuccessfulFiles().set(updatedFiles);
+			});
+			total++;
+		}
+		queue.await();
+		for (var path : updatedFiles.get()) {
+			getProject().getLogger().lifecycle(" - Updated file {}", path);
+		}
+
+		getProject().getLogger().lifecycle("Updated {} out of {} files.", updatedFiles.get().size(), total);
 	}
 
-	public static class Consumer implements JavaSourceConsumer {
-		private final LicenseHeader licenseHeader;
-		private final List<Path> updatedFiles = new ArrayList<>();
-		private int total = 0;
-
-		public Consumer(LicenseHeader licenseHeader) {
-			this.licenseHeader = licenseHeader;
-		}
-
+	public abstract static class Consumer implements WorkAction<ApplyLicenseWorkParameters> {
 		@Override
-		public void consume(Project project, Logger logger, Path rootPath, Path path) {
-			if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
-				logger.lifecycle("=> Visiting {}...", path);
-			}
+		public void execute() {
+			try {
+				File visiting = getParameters().getSourceFile().get().getAsFile();
+	//            if (QuiltLicenserGradlePlugin.DEBUG_MODE) {
+	//                getLogger().lifecycle("=> Visiting {}...", visiting);
+	//            }
 
-			if (this.licenseHeader.format(project, rootPath, path)) {
-				this.updatedFiles.add(path);
+				if (this.getParameters().getLicenseHeader().get().format(this.getParameters())) {
+					this.getParameters().getSuccessfulFiles().add(visiting);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-
-			this.total++;
 		}
 
-		@Override
-		public void end(Logger logger) {
-			for (var path : this.updatedFiles) {
-				logger.lifecycle(" - Updated file {}", path);
-			}
+	}
 
-			logger.lifecycle("Updated {} out of {} files.", this.updatedFiles.size(), this.total);
-		}
+	public static interface ApplyLicenseWorkParameters extends WorkParameters {
+		/**
+		 * The folder of the root project.
+		 */
+		RegularFileProperty getRootPath();
+
+		/**
+		 * The folder of the project directly containing the file to be licensed.
+		 */
+		RegularFileProperty getProjectPath();
+
+		/**
+		 * The file to be licensed.
+		 */
+		RegularFileProperty getSourceFile();
+
+		/**
+		 * The backup folder for files before they were licensed.
+		 */
+		RegularFileProperty getBackupFolder();
+
+		Property<LicenseHeader> getLicenseHeader();
+
+		ListProperty<File> getSuccessfulFiles();
 	}
 }

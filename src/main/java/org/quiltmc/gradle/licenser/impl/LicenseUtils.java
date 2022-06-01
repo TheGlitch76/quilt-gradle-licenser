@@ -18,6 +18,7 @@ package org.quiltmc.gradle.licenser.impl;
 
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.wrapper.Logger;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.quiltmc.gradle.licenser.api.license.HeaderFormat;
@@ -161,8 +162,7 @@ public class LicenseUtils {
 		return list;
 	}
 
-	public static @Nullable Path getBackupPath(Project project, Path rootPath, Path path) {
-		var backupDir = new File(project.getBuildDir(), "quilt/licenser");
+	public static @Nullable Path getBackupPath(File backupDir, Path rootPath, Path path) {
 		backupDir.mkdirs();
 		var pathAsString = path.toAbsolutePath().toString();
 		var rootPathAsString = rootPath.toString();

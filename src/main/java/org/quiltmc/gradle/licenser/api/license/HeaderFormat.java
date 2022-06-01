@@ -16,8 +16,12 @@
 
 package org.quiltmc.gradle.licenser.api.license;
 
+import groovy.transform.Internal;
+import org.gradle.api.provider.ListProperty;
+import org.gradle.api.tasks.Input;
 import org.quiltmc.gradle.licenser.impl.LicenseUtils;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -28,10 +32,9 @@ import java.util.Map;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class HeaderFormat {
+public class HeaderFormat implements Serializable {
 	private final String source;
 	private final String lineSeparator;
-	private final List<String> metadataLines;
 
 	public HeaderFormat(String source) {
 		this.lineSeparator = LicenseUtils.getLineSeparator(source);
@@ -39,7 +42,6 @@ public class HeaderFormat {
 		String[] lines = source.split(this.lineSeparator);
 
 		this.source = String.join(this.lineSeparator, LicenseUtils.getHeaderLines(lines));
-		this.metadataLines = List.copyOf(LicenseUtils.getMetadata(lines));
 	}
 
 	/**
@@ -82,7 +84,9 @@ public class HeaderFormat {
 	 * {@return the metadata lines of this license header}
 	 */
 	public List<String> getMetadataLines() {
-		return this.metadataLines;
+		String[] lines = source.split(this.lineSeparator);
+
+		return List.copyOf(LicenseUtils.getMetadata(lines));
 	}
 
 	/**

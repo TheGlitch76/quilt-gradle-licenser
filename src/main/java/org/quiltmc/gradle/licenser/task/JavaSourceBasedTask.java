@@ -44,6 +44,8 @@ public abstract class JavaSourceBasedTask extends DefaultTask {
 		consumer.end(this.getLogger());
 	}
 
+
+
 	public interface JavaSourceConsumer {
 		void consume(Project project, Logger logger, Path sourceSetPath, Path path);
 

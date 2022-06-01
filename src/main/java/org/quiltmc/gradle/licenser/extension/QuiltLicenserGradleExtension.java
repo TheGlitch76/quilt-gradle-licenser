@@ -47,7 +47,7 @@ public class QuiltLicenserGradleExtension implements PatternFilterable {
 	public PatternFilterable patternFilterable;
 
 	@PackageScope
-	final LicenseHeader header = new LicenseHeader(new ArrayList<>());
+	final LicenseHeader header;
 	@PackageScope
 	final TextResourceFactory textResources;
 
@@ -58,7 +58,7 @@ public class QuiltLicenserGradleExtension implements PatternFilterable {
 	public QuiltLicenserGradleExtension(final ObjectFactory objects, final Project project) {
 		this.patternFilterable = new PatternSet();
 		this.textResources = project.getResources().getText();
-
+		this.header = new LicenseHeader(objects.listProperty(LicenseRule.class));
 		this.exclude(
 				// Files without standard comment format.
 				"**/*.txt",

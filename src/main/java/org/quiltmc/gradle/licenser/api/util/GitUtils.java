@@ -119,8 +119,8 @@ public final class GitUtils {
 		return Calendar.getInstance().get(Calendar.YEAR);
 	}
 
-	public static int getModificationYear(Project project, Path path) {
-		try (var git = openGit(project)) {
+	public static int getModificationYear(Path rootPath, Path path) {
+		try (var git = Git.open(rootPath.toFile())) {
 			Path repoRoot = getRepoRoot(git);
 			path = repoRoot.relativize(path);
 			var pathString = path.toString();

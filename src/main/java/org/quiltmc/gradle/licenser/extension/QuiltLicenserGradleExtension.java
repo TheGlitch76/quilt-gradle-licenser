@@ -58,6 +58,7 @@ public class QuiltLicenserGradleExtension implements PatternFilterable {
 		this.patternFilterable = new PatternSet();
 		this.textResources = project.getResources().getText();
 		this.header = new LicenseHeader();
+
 		this.exclude(
 				// Files without standard comment format.
 				"**/*.txt",

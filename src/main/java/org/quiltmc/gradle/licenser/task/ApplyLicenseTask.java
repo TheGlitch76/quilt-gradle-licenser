@@ -57,7 +57,7 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 	@TaskAction
 	public void execute() {
 		File rootPath = this.getProject().getRootProject().getRootDir();
-		File projectPath = this.getProject().getRootDir();
+		File projectPath = this.getProject().getProjectDir();
 		File backupFolder = new File(getProject().getBuildDir(), "licenser-backup");
 		ListProperty<File> updatedFiles = getProject().getObjects().listProperty(File.class);
 
@@ -66,7 +66,7 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 		try {
 			GitUtils.gits.put(rootPath, Git.open(rootPath));
 		} catch (IOException e) {
-			throw new GradleException("Failed to open git repository at " + rootPath, e);
+			getLogger().warn("Failed to open git repository at " + rootPath, e);
 		}
 
 		try {

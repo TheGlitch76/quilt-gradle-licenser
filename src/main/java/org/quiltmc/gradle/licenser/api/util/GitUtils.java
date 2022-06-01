@@ -122,6 +122,10 @@ public final class GitUtils {
 
 	public static int getModificationYear(Path repoRoot, Path path) {
 		var git = gits.get(repoRoot.toFile());
+		if (git == null) {
+			// ignore
+			return Calendar.getInstance().get(Calendar.YEAR);
+		}
 		try {
 			path = repoRoot.relativize(path);
 			var pathString = path.toString();

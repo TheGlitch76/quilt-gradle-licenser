@@ -50,7 +50,7 @@ public class LicenseRule implements Serializable {
 	private final LicenseYearSelectionMode yearSelectionMode;
 
 	public LicenseRule(String headerFormat) {
-		this(headerFormat, LicenseYearDisplayMode.LATEST_ONLY, LicenseYearSelectionMode.ROOT_PROJECT);
+		this(headerFormat, LicenseYearDisplayMode.LATEST_ONLY, LicenseYearSelectionMode.PROJECT);
 	}
 
 	public LicenseRule(String headerFormat, LicenseYearDisplayMode yearDisplayMode, LicenseYearSelectionMode yearSelectionMode) {

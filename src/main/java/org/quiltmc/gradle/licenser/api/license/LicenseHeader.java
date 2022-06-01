@@ -39,7 +39,6 @@ public final class LicenseHeader implements Serializable {
 	public static final String METADATA_MARKER = ";;";
 	public static final String COMMENT_MARKER = METADATA_MARKER + "#";
 
-	@Input
 	private final ArrayList<LicenseRule> rules;
 
 	public LicenseHeader(LicenseRule... rules) {
@@ -82,9 +81,6 @@ public final class LicenseHeader implements Serializable {
 	/**
 	 * Formats the given file to contain the correct license header.
 	 *
-	 * @param project the project the file is in
-	 * @param rootPath the root path of the project
-	 * @param path the path of the file
 	 * @return {@code true} if files changed, otherwise {@code false}
 	 */
 	public boolean format(ApplyLicenseTask.ApplyLicenseWorkParameters parameters) {

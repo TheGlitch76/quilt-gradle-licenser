@@ -28,24 +28,25 @@ import java.nio.file.Path;
  * @since 1.0.0
  */
 public enum LicenseYearSelectionMode {
+	SUBPROJECT,
 	PROJECT,
-	ROOT_PROJECT,
 	FILE;
 	/**
 	 * Gets the last modification year in which the file got modified.
 	 * <p>
-	 * In the case of {@link #PROJECT} the last modification year isn't file dependent.
+	 * In the case of {@link #SUBPROJECT} the last modification year isn't file dependent.
 	 *
 	 * @param rootPath the root project the file is in
 	 * @param projectPath the project the file is in
 	 * @param path the path to the file
 	 * @return the last modification year
 	 */
+
 	public int getYear(Path rootPath, Path projectPath, Path path) {
 		Path commitPath;
-		if (this == PROJECT) {
+		if (this == SUBPROJECT) {
 			commitPath = projectPath;
-		} else if (this == ROOT_PROJECT) {
+		} else if (this == PROJECT) {
 			commitPath = rootPath;
 		} else {
 			commitPath = path;

@@ -24,6 +24,7 @@ import org.quiltmc.gradle.licenser.task.ApplyLicenseTask;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Represents a license header.
@@ -41,8 +42,12 @@ public final class LicenseHeader implements Serializable {
 	@Input
 	private final ArrayList<LicenseRule> rules;
 
-	public LicenseHeader(ListProperty<LicenseRule> rules) {
-		this.rules = new ArrayList<>(rules.get());
+	public LicenseHeader(LicenseRule... rules) {
+		this.rules = new ArrayList<>(List.of(rules));
+	}
+
+	public LicenseHeader(List<LicenseRule> rules) {
+		this.rules = new ArrayList<>(rules);
 	}
 
 	/**

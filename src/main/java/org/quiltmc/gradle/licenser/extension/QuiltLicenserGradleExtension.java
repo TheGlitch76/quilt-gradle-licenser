@@ -34,7 +34,6 @@ import org.quiltmc.gradle.licenser.api.license.LicenseRule;
 import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Set;
 
 public class QuiltLicenserGradleExtension implements PatternFilterable {
@@ -58,7 +57,7 @@ public class QuiltLicenserGradleExtension implements PatternFilterable {
 	public QuiltLicenserGradleExtension(final ObjectFactory objects, final Project project) {
 		this.patternFilterable = new PatternSet();
 		this.textResources = project.getResources().getText();
-		this.header = new LicenseHeader(objects.listProperty(LicenseRule.class));
+		this.header = new LicenseHeader();
 		this.exclude(
 				// Files without standard comment format.
 				"**/*.txt",

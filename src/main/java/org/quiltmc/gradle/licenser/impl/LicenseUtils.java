@@ -17,8 +17,6 @@
 package org.quiltmc.gradle.licenser.impl;
 
 import org.gradle.api.GradleException;
-import org.gradle.api.Project;
-import org.gradle.wrapper.Logger;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.quiltmc.gradle.licenser.api.license.HeaderFormat;

@@ -16,6 +16,8 @@
 
 package org.quiltmc.gradle.licenser.task;
 
+import org.eclipse.jgit.api.Git;
+import org.gradle.api.GradleException;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
@@ -27,10 +29,12 @@ import org.gradle.workers.WorkQueue;
 import org.gradle.workers.WorkerExecutor;
 import org.jetbrains.annotations.ApiStatus;
 import org.quiltmc.gradle.licenser.api.license.LicenseHeader;
+import org.quiltmc.gradle.licenser.api.util.GitUtils;
 import org.quiltmc.gradle.licenser.extension.QuiltLicenserGradleExtension;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.io.IOException;
 
 @ApiStatus.Internal
 public class ApplyLicenseTask extends JavaSourceBasedTask {
@@ -60,6 +64,11 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 		LicenseHeader header = this.licenseHeader;
 		WorkQueue queue = this.executor.noIsolation();
 		int total = 0;
+		try {
+			GitUtils.gits.put(rootPath, Git.open(rootPath));
+		} catch (IOException e) {
+			throw new GradleException("Failed to open git repository at " + rootPath, e);
+		}
 		for (var sourceFile : this.sourceSet.getAllJava().matching(this.patternFilterable)) {
 			queue.submit(Consumer.class, parameters -> {
 				parameters.getRootPath().set(rootPath);
@@ -72,6 +81,8 @@ public class ApplyLicenseTask extends JavaSourceBasedTask {
 			total++;
 		}
 		queue.await();
+
+		GitUtils.gits.get(rootPath).close();
 		for (var path : updatedFiles.get()) {
 			getProject().getLogger().lifecycle(" - Updated file {}", path);
 		}

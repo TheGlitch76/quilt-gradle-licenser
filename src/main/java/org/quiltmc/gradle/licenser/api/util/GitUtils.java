@@ -28,20 +28,21 @@ import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.gradle.api.GradleException;
-import org.gradle.api.Project;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class GitUtils {
+	// Caching git instances saves a lot of time.
+	// This is safe as long as the Git instance is never written to.
+	public static final ConcurrentHashMap<File, Git> gits = new ConcurrentHashMap<>();
+
 	private GitUtils() {
 		throw new UnsupportedOperationException("GitUtils only contains static definitions.");
-	}
-
-	private static Git openGit(Project project) throws IOException {
-		return Git.open(project.getRootProject().getProjectDir());
 	}
 
 	private static Path getRepoRoot(Git git) {
@@ -119,9 +120,9 @@ public final class GitUtils {
 		return Calendar.getInstance().get(Calendar.YEAR);
 	}
 
-	public static int getModificationYear(Path rootPath, Path path) {
-		try (var git = Git.open(rootPath.toFile())) {
-			Path repoRoot = getRepoRoot(git);
+	public static int getModificationYear(Path repoRoot, Path path) {
+		var git = gits.get(repoRoot.toFile());
+		try {
 			path = repoRoot.relativize(path);
 			var pathString = path.toString();
 
